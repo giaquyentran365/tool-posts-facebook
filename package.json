@@ -1,0 +1,38 @@
+{
+  "name": "fbtool",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "pw:install": "npx playwright install --with-deps chromium",
+    "migrate": "node ./src/config/migrate.js migrate",
+    "seed": "node ./src/config/migrate.js seed",
+    "db:reset": "node ./src/config/migrate.js reset",
+    "db:status": "node ./src/config/migrate.js status"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "axios": "^1.12.2",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "node-fetch": "^3.3.2",
+    "nodemon": "^3.1.10",
+    "pg": "^8.16.3",
+    "playwright-extra": "^4.3.6",
+    "rebrowser-playwright": "^1.52.0",
+    "uuid": "^13.0.0",
+    "winston": "^3.18.3"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  }
+}
