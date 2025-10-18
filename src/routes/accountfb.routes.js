@@ -100,6 +100,26 @@ router.post("/:id/update-tokens", async (req, res) => {
   }
 });
 
+// Save Playwright storageState (cookies/localStorage) sent from browser after interactive login
+router.post('/:id/save-storage', async (req, res) => {
+  try {
+    const storageState = req.body.storageState || req.body;
+    if (!storageState) {
+      return res.status(400).json({ error: true, message: 'storageState is required in request body' });
+    }
+
+    // Reuse updateTokens to store cookies JSON; accessToken remains unchanged
+    const result = await accountFbService.updateTokens(req.user.id, req.params.id, {
+      accessToken: null,
+      cookies: storageState,
+    });
+
+    res.json(result);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: true, message: error.message });
+  }
+});
+
 // Update account status
 router.post("/:id/status", async (req, res) => {
   try {

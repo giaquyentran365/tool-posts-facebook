@@ -85,7 +85,7 @@ router.post("/", upload.array("images", 10), async (req, res) => {
     // Get uploaded image paths
     const images = req.files ? req.files.map((file) => file.path) : [];
 
-    const result = await postService.createPost(req.user.id, {
+    const result = await postService.createPoôpst(req.user.id, {
       title,
       content,
       images,

@@ -8,6 +8,7 @@ module.exports = {
       groupIds,
       postId,
       authStatePath,
+      storageStateObj,
       delayMinMs,
       delayMaxMs,
       headless = false,
@@ -15,9 +16,9 @@ module.exports = {
       userDataDir = null,
     } = params;
 
-    const storageStateExists = fs.existsSync(authStatePath);
-    if (!storageStateExists) {
-      throw new Error(`authStatePath not found: ${authStatePath}`);
+    // If neither file nor object storageState provided, throw
+    if (!storageStateObj) {
+      throw new Error(`No storage state provided`);
     }
 
     const browserOpts = {
@@ -47,8 +48,8 @@ module.exports = {
           browserOpts
         );
       } else {
-        browser = await chromium.launch(browserOpts);
-        context = await browser.newContext({ storageState: authStatePath });
+        browser = await chromium.launch({ headless: headless, channel: 'chrome', args: browserOpts.args });
+        context = await browser.newContext({ storageState: storageStateObj });
       }
 
       const page = await context.newPage();
@@ -73,7 +74,6 @@ module.exports = {
           continue;
         }
 
-        // Open the post composer
         await page.locator(foundComposer).first().click({ delay: 100 });
         await page.waitForTimeout(2000);
 

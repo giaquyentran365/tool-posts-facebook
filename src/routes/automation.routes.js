@@ -9,6 +9,7 @@ const groupsService = require("../services/groups.service");
 const accountfbService = require("../services/accountfb.service");
 const { authenticateToken } = require("../middleware/auth.middleware");
 const playwrightService = require("../services/playwright.service");
+const authPlaywright = require('../services/authPlaywright.service');
 
 router.use(authenticateToken);
 
@@ -47,6 +48,11 @@ router.post("/post-to-groups", async (req, res) => {
       return res.status(400).json({ error: true, message: "No groups linked to this account." });
     }
 
+    // Prefer storageState from DB (account cookies) if available, otherwise fallback to auth.json
+    const storageStateObj = fbAccountData && fbAccountData.data && fbAccountData.data.account && fbAccountData.data.account.cookies
+      ? (typeof fbAccountData.data.account.cookies === 'string' ? JSON.parse(fbAccountData.data.account.cookies) : fbAccountData.data.account.cookies)
+      : null;
+
     const params = {
       userId: req.user.id,
       postId,
@@ -60,7 +66,7 @@ router.post("/post-to-groups", async (req, res) => {
       headless,
       delayMinMs: delayMin,
       delayMaxMs: delayMax,
-      authStatePath: authPath,
+      storageStateObj: storageStateObj,
       postContent: postData.content,
       postMedia: postData.media_url || null,
     };
@@ -83,106 +89,18 @@ router.post("/post-to-groups", async (req, res) => {
   }
 });
 
-router.post("/save-auth", async (req, res) => {
-  const AUTH_PATH = path.resolve(process.cwd(), "auth.json");
-
-  const MAX_WAIT_MS = 5 * 60 * 1000;
-  const POLL_INTERVAL_MS = 2000;
-
-  function sleep(ms) {
-    return new Promise((r) => setTimeout(r, ms));
-  }
-
+// Auto-login endpoint: server runs Playwright with provided credentials and saves storageState to DB
+router.post('/auto-login/:accountId', async (req, res) => {
   try {
-    const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "rebrowser-profile-"));
+    const accountId = req.params.accountId;
+    const { email, password, headless = false } = req.body;
+    if (!email || !password) return res.status(400).json({ error: true, message: 'email and password required' });
 
-    const context = await chromium.launchPersistentContext(tmpBase, {
-      headless: false,
-      channel: "chrome",
-      args: ["--no-sandbox", "--disable-blink-features=AutomationControlled"],
-      viewport: { width: 1280, height: 800 },
-      locale: "en-US",
-      timezoneId: "Asia/Ho_Chi_Minh",
-    });
-
-    const page = await context.newPage();
-    await page.goto("https://www.facebook.com/login", {
-      waitUntil: "domcontentloaded",
-    });
-
-    console.log("Browser opened. Please complete login manually...");
-
-    const start = Date.now();
-    let saved = false;
-
-    while (Date.now() - start < MAX_WAIT_MS) {
-      try {
-        // 1 Check post composer (logged-in)
-        const composerCount = await page
-          .locator('[aria-label*="Create a post"], [role="textbox"]')
-          .count();
-
-        if (composerCount > 0) {
-          await context.storageState({ path: AUTH_PATH });
-          saved = true;
-          console.log("✅ Detected composer -> saved auth.json");
-          break;
-        }
-
-        // 2 Check c_user cookie
-        const cookies = await context.cookies();
-        if (cookies.some((c) => c.name === "c_user")) {
-          await context.storageState({ path: AUTH_PATH });
-          saved = true;
-          console.log("✅ Detected c_user cookie -> saved auth.json");
-          break;
-        }
-
-        // 3 Check URL (away from login/checkpoint)
-        const url = page.url();
-        if (
-          !/login|checkpoint|two_factor|two_step_verification|authentication/i.test(url)
-        ) {
-          const body = (await page.content()).toLowerCase();
-          if (
-            !body.includes("log in") &&
-            !body.includes("sign up") &&
-            !body.includes("two-step")
-          ) {
-            await context.storageState({ path: AUTH_PATH });
-            saved = true;
-            console.log("✅ URL changed -> saved auth.json");
-            break;
-          }
-        }
-      } catch (err) {
-      }
-
-      await sleep(POLL_INTERVAL_MS);
-    }
-
-    await context.close();
-
-    if (!saved) {
-      console.warn("⚠ Timeout: auth.json not saved within 5 minutes.");
-      return res.status(408).json({
-        error: true,
-        message: "Timeout: login not detected. Please try again.",
-      });
-    }
-
-    return res.json({
-      success: true,
-      message: "auth.json saved successfully.",
-      path: AUTH_PATH,
-    });
+    const result = await authPlaywright.performLoginAndSave(req.user.id, accountId, { email, password }, { headless });
+    res.json({ success: true, data: result });
   } catch (e) {
-    console.error("❌ Error during auth saving:", e);
-    return res.status(500).json({
-      error: true,
-      message: "Failed to save auth.json",
-      details: e.message,
-    });
+    console.error('Auto-login failed:', e.stack || e);
+    res.status(e.statusCode || 500).json({ error: true, message: e.message });
   }
 });
 

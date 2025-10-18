@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "save-auth:local": "node ./bin/save-auth-local.js",
     "pw:install": "npx playwright install --with-deps chromium",
     "migrate": "node ./src/config/migrate.js migrate",
     "seed": "node ./src/config/migrate.js seed",
