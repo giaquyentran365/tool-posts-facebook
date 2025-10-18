@@ -77,8 +77,8 @@ class MigrationService {
     await client.query(`
       CREATE TABLE groups (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        group_id VARCHAR(255) NOT NULL,
+        user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+        group_id BIGINT NOT NULL,
         group_url TEXT NOT NULL,
         group_name VARCHAR(255),
         status VARCHAR(50) DEFAULT 'UNKNOWN',
@@ -94,7 +94,7 @@ class MigrationService {
     await client.query(`
       CREATE TABLE posts (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
         title VARCHAR(255),
         content TEXT NOT NULL,
         images JSONB,
@@ -109,14 +109,14 @@ class MigrationService {
     await client.query(`
       CREATE TABLE logs (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        post_id INTEGER REFERENCES posts(id) ON DELETE SET NULL,
-        group_id INTEGER REFERENCES groups(id) ON DELETE SET NULL,
+        user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+        post_id BIGINT REFERENCES posts(id) ON DELETE SET NULL,
+        group_id BIGINT REFERENCES groups(id) ON DELETE SET NULL,
         action VARCHAR(100) NOT NULL,
         status VARCHAR(50) NOT NULL,
         message TEXT,
         error_details JSONB,
-        execution_time INTEGER,
+        execution_time BIGINT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -126,7 +126,7 @@ class MigrationService {
     await client.query(`
     CREATE TABLE account_fbs (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
       email VARCHAR(255) NOT NULL,
       password TEXT,
       access_token TEXT,

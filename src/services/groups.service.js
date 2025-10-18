@@ -68,7 +68,7 @@ class GroupService {
         `SELECT id, group_id, group_url, group_name, status, notes, 
                 created_at, updated_at
          FROM groups
-         WHERE id = $1 AND user_id = $2`,
+         WHERE group_id = $1 AND user_id = $2`,
         [groupId, userId]
       );
 
@@ -78,36 +78,10 @@ class GroupService {
         throw error;
       }
 
-      // Lấy Facebook token của user
-      const userResult = await query('SELECT facebook_token FROM users WHERE id = $1', [userId]);
-      const fbToken = userResult.rows[0]?.facebook_token;
-      let fbGroupInfo = null;
-      let fbStatus = 'UNKNOWN';
-      if (fbToken) {
-        try {
-          const fetch = require('node-fetch');
-          const fbRes = await fetch(`https://graph.facebook.com/v19.0/${result.rows[0].group_id}?access_token=${fbToken}`);
-          if (fbRes.ok) {
-            fbGroupInfo = await fbRes.json();
-            fbStatus = 'JOINED';
-          } else {
-            const fbErr = await fbRes.json();
-            if (fbErr.error && fbErr.error.code === 190) fbStatus = 'TOKEN_INVALID';
-            else fbStatus = 'NOT_JOINED';
-          }
-        } catch (e) {
-          fbStatus = 'ERROR';
-        }
-      }
-
       return {
         success: true,
         data: {
           group: result.rows[0],
-          facebook: {
-            status: fbStatus,
-            info: fbGroupInfo
-          }
         }
       };
 
