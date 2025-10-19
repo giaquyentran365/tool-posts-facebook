@@ -67,8 +67,8 @@ router.post("/post-to-groups", async (req, res) => {
       delayMinMs: delayMin,
       delayMaxMs: delayMax,
       storageStateObj: storageStateObj,
-      postContent: postData.content,
-      postMedia: postData.media_url || null,
+      postContent: postData.data.post.content,
+      postMedia: postData.data.post.images || null,
     };
 
     const result = await playwrightService.postToGroupsAutomation(params);
